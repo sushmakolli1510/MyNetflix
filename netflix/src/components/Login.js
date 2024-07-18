@@ -1,23 +1,34 @@
+// Import necessary libraries
 import React,{ useState } from 'react';
 import Header from './Header';
 import axios from 'axios';
 import { API_END_POINT } from '../utils/constant.js';
 import toast from 'react-hot-toast';
 import {useNavigate} from 'react-router-dom';
-
+import {useDispatch,useSelector} from 'react-redux';
+import { setLoading,setUser } from '../redux/userSlice';
+// Define Login component
 const Login = () => {
+
+  // Declare state variables
   const [isLogin, setIsLogin] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullname, setFullname] = useState("");
+   // Define navigate and dispatch hooks
 const navigate=useNavigate();
-  
-
+const dispatch=useDispatch();
+// Get isLoading value from Redux store
+  const isLoading = useSelector(store => store.app.isLoading);
+// Function to toggle between login and signup forms
   const loginHandler = () => {
     setIsLogin(!isLogin);
 }
+// Function to handle form submit
 const getInputData =async (e) => {
     e.preventDefault();
+    dispatch(setLoading(true));// Dispatch setLoading action to show loading spinner
+    // Check if user is logging in or registering
     if(isLogin){
       //login
       const user={email,password};
@@ -32,17 +43,20 @@ const getInputData =async (e) => {
 
         console.log(res);
         if(res.data.success){
-          toast.success(res.data.message);
+          toast.success(res.data.message);// Show success message using react-hot-toast
         }
-        
-        navigate("/browse");
+        dispatch(setUser(res.data.user));// Dispatch setUser action to set user data in Redux store
+        navigate("/browse");// Navigate to browse page
       }catch(error){
-        toast.error(error.response.data.message);
+        toast.error(error.response.data.message);// Show error message using react-hot-toast
         console.log(error);
-      }
+      }finally{
+        dispatch(setLoading(false));
+    }
     }else{
       //register
-      const user={email,password,fullname};
+      dispatch(setLoading(true));// Dispatch setLoading action to show loading spinner
+      const user={fullname,email, password};
       try{
         const res=await axios.post(`${API_END_POINT}/register`,user,{
           headers:{
@@ -54,16 +68,20 @@ const getInputData =async (e) => {
         if(res.data.success){
           toast.success(res.data.message);
         }
-        setIsLogin(true);
+        setIsLogin(true);// Set isLogin state to true to show login form
       }catch(error){
         toast.error(error.response.data.message);
         console.log(error);
+      }finally{
+        dispatch(setLoading(false));
       }
     }
     setEmail("");
     setPassword("");
     setFullname("");
 }
+
+ // Render form with conditional fields based on isLogin value
 
   return (
     <div>
@@ -79,7 +97,7 @@ const getInputData =async (e) => {
                     }
                     <input value={email} onChange={(e)=>setEmail(e.target.value)} type='email' placeholder='Email' className='outline-none p-3 my-2 rounded-sm bg-gray-800 text-white' />
                     <input value={password} onChange={(e)=>setPassword(e.target.value)} type='password' placeholder='Password' className='outline-none p-3 my-2 rounded-sm bg-gray-800 text-white' />
-                    <button className='bg-red-600 p-3 rounded-sm mt-6 text-white font-medium'>{isLogin ? "Login" : "Signup"}</button>
+                    <button className='bg-red-600 p-3 rounded-sm mt-6 text-white font-medium'>{`${isLoading ? "loading...":(isLogin?"Login":"Signup")}`}</button>
                     <p className='text-white mt-2'>{isLogin ? "New to Netflix?" : "Already have an account?"}<span onClick={loginHandler} className='ml-1 text-blue-900 font-medium cursor-pointer'>{isLogin ? "Signup" : "Login"}</span></p>
                 </div>
             </form>
